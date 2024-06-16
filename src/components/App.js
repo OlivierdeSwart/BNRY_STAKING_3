@@ -238,6 +238,33 @@ function App() {
     }
   };
 
+  const handleWithdrawMax = async () => {
+    if (!staking || !account) return;
+  
+    try {
+      const currentBalance = await staking.calculateCurrentBalanceCompound(account);
+  
+      if (currentBalance.isZero()) {
+        alert('You have no WBNRY to withdraw');
+        return;
+      }
+  
+      // Withdraw tokens
+      const withdrawTx = await staking.connect(provider.getSigner()).withdraw(currentBalance);
+      await withdrawTx.wait();
+  
+      alert("Withdrawal successful!");
+  
+      // Reload variables
+      await loadDefaultData();
+      await loadUserData();
+  
+    } catch (error) {
+      console.error("Withdrawal failed:", error);
+      alert("Withdrawal failed! Check the console for more details.");
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
       await loadDefaultData();
@@ -348,9 +375,14 @@ function App() {
                     placeholder="Enter amount to withdraw"
                   />
                 </Form.Group>
-                <Button variant="primary" type="submit">
-                  Withdraw WBNRY
-                </Button>
+                <div className="d-flex align-items-center mt-3">
+                  <Button variant="primary" type="submit" className="me-2">
+                    Withdraw WBNRY
+                  </Button>
+                  <Button variant="primary" onClick={handleWithdrawMax}>
+                    Withdraw Max WBNRY
+                  </Button>
+                </div>
               </Form>
             </>
           )}
