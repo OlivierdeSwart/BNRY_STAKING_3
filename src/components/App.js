@@ -133,6 +133,44 @@ function App() {
     }
   };
 
+  const handleStakeMax = async () => {
+    if (!staking || !wbnry || !account) return;
+  
+    try {
+      const userBalance = await wbnry.balanceOf(account);
+  
+      if (userBalance.isZero()) {
+        alert('You have no WBNRY to stake');
+        return;
+      }
+  
+      // Request approval to transfer tokens
+      const approvalTx = await wbnry.connect(provider.getSigner()).approve(staking.address, userBalance);
+      await approvalTx.wait();
+  
+      // Verify approval
+      const allowance = await wbnry.allowance(account, staking.address);
+      if (allowance.lt(userBalance)) {
+        alert('Approval failed or insufficient approval amount');
+        return;
+      }
+  
+      // Stake tokens
+      const stakeTx = await staking.connect(provider.getSigner()).stake(userBalance);
+      await stakeTx.wait();
+  
+      alert("Staking successful!");
+  
+      // Reload variables
+      await loadDefaultData();
+      await loadUserData();
+  
+    } catch (error) {
+      console.error("Staking failed:", error);
+      alert("Staking failed! Check the console for more details.");
+    }
+  };
+
   const handleStake = async (event) => {
     event.preventDefault();
 
@@ -258,63 +296,68 @@ function App() {
         <h2>Staking Information</h2>
         <p>WBNRY Smart Contract Address: {wbnryAddress}</p>
         <p>WBNRY Total Circulation: {wbnrySupply !== null && wbnrySupply !== undefined ? Number(ethers.utils.formatUnits(wbnrySupply, 8)).toFixed(1) : 'Loading...'}</p>
-      <p>Staking Address: {stakingAddress}</p>
-      <p>Total Staked: {totalStaked !== null && totalStaked !== undefined ? Number(ethers.utils.formatUnits(totalStaked, 8)).toFixed(1) : 'Loading...'}</p>
-      <p>Total Stakers: {totalStakers}</p>
-      <p>Total Treasury Tokens: {totalTreasuryTokens !== null && totalTreasuryTokens !== undefined ? Number(ethers.utils.formatUnits(totalTreasuryTokens, 8)).toFixed(1) : 'Loading...'}</p>
-      <p>Annual Yield: {annualYield}%</p>
-    </section>
+        <p>Staking Address: {stakingAddress}</p>
+        <p>Total Staked: {totalStaked !== null && totalStaked !== undefined ? Number(ethers.utils.formatUnits(totalStaked, 8)).toFixed(1) : 'Loading...'}</p>
+        <p>Total Stakers: {totalStakers}</p>
+        <p>Total Treasury Tokens: {totalTreasuryTokens !== null && totalTreasuryTokens !== undefined ? Number(ethers.utils.formatUnits(totalTreasuryTokens, 8)).toFixed(1) : 'Loading...'}</p>
+        <p>Annual Yield: {annualYield}%</p>
+      </section>
 
-    <hr /> {/* Line break to separate contract information and user information */}
+      <hr /> {/* Line break to separate contract information and user information */}
 
-    {isLoading ? (
-      <div className='text-center my-5'>
-        <p className='my-2'>Please connect metamask...</p>
-      </div>
-    ) : (
-      <>
-        <h2>User Information</h2>
-        <p><strong>Current account address: </strong>{account}</p>
-        <p><strong>WBNRY Owned: </strong>{accountWBNRYBalance}</p>
-        <p><strong>WBNRY Staked: </strong>{accountStake}</p>
-        <p><strong>Accumulated Staking Yield: </strong>{accountGains}</p>
-        <p><strong>Total Staking Balance: </strong>{accountStakeBalance}</p>
-        {account && (
-          <>
-            <Form onSubmit={handleStake}>
-              <Form.Group controlId="stakeAmount">
-                <Form.Label>Amount to Stake</Form.Label>
-                <Form.Control
-                  type="number"
-                  value={stakeAmount}
-                  onChange={(e) => setStakeAmount(e.target.value)}
-                  placeholder="Enter amount to stake"
-                />
-              </Form.Group>
-              <Button variant="primary" type="submit">
-                Stake WBNRY
-              </Button>
-            </Form>
-            <Form onSubmit={handleWithdraw}>
-              <Form.Group controlId="withdrawAmount" className="mt-3">
-                <Form.Label>Amount to Withdraw</Form.Label>
-                <Form.Control
-                  type="number"
-                  value={withdrawAmount}
-                  onChange={(e) => setWithdrawAmount(e.target.value)}
-                  placeholder="Enter amount to withdraw"
-                />
-              </Form.Group>
-              <Button variant="primary" type="submit">
-                Withdraw WBNRY
-              </Button>
-            </Form>
-          </>
-        )}
-      </>
-    )}
-  </Container>
-);
+      {isLoading ? (
+        <div className='text-center my-5'>
+          <p className='my-2'>Please connect metamask...</p>
+        </div>
+      ) : (
+        <>
+          <h2>User Information</h2>
+          <p><strong>Current account address: </strong>{account}</p>
+          <p><strong>WBNRY Owned: </strong>{accountWBNRYBalance}</p>
+          <p><strong>WBNRY Staked: </strong>{accountStake}</p>
+          <p><strong>Accumulated Staking Yield: </strong>{accountGains}</p>
+          <p><strong>Total Staking Balance: </strong>{accountStakeBalance}</p>
+          {account && (
+            <>
+              <Form onSubmit={handleStake}>
+                <Form.Group controlId="stakeAmount">
+                  <Form.Label>Amount to Stake</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={stakeAmount}
+                    onChange={(e) => setStakeAmount(e.target.value)}
+                    placeholder="Enter amount to stake"
+                  />
+                </Form.Group>
+                <div className="d-flex align-items-center mt-3">
+                  <Button variant="primary" type="submit" className="me-2">
+                    Stake WBNRY
+                  </Button>
+                  <Button variant="primary" onClick={handleStakeMax}>
+                    Stake Max WBNRY
+                  </Button>
+                </div>
+              </Form>
+              <Form onSubmit={handleWithdraw}>
+                <Form.Group controlId="withdrawAmount" className="mt-3">
+                  <Form.Label>Amount to Withdraw</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    placeholder="Enter amount to withdraw"
+                  />
+                </Form.Group>
+                <Button variant="primary" type="submit">
+                  Withdraw WBNRY
+                </Button>
+              </Form>
+            </>
+          )}
+        </>
+      )}
+    </Container>  
+  );
 }
 
 export default App;
