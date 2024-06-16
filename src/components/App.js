@@ -2,9 +2,9 @@
   import { Container, Form, Button } from 'react-bootstrap';
   import { ethers } from 'ethers';
 
-  // Components
-  import Navigation from './Navigation';
-  import Loading from './Loading';
+  // Navbar
+  import Navbar from 'react-bootstrap/Navbar';
+  import logo from '../logo.png';
 
   // ABIs
   import WBNRY_ABI from '../abis/WBNRY.json';
@@ -14,14 +14,12 @@
   import config from '../config.json';
 
   function App() {
-    const [defaultProvider, setDefaultProvider] = useState(null);
     const [provider, setProvider] = useState(null);
     const [staking, setStaking] = useState(null);
     const [wbnry, setWBNRY] = useState(null);
 
     // State variables for contract data
     const [wbnryAddress, setWBNRYAddress] = useState(null);
-    const [wbnryName, setWBNRYName] = useState(null);
     const [wbnrySupply, setWBNRYSupply] = useState(null);
     const [stakingAddress, setStakingAddress] = useState(null);
     const [totalStaked, setTotalStaked] = useState(null);
@@ -45,7 +43,6 @@
       try {
         // Initiate default provider
         const defaultProvider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545');
-        setDefaultProvider(defaultProvider);
 
         // Fetch Chain ID
         const { chainId } = await defaultProvider.getNetwork();
@@ -61,7 +58,6 @@
         const annualYield = await Staking.annualYield();
 
         setWBNRYAddress(WBNRY.address);
-        setWBNRYName(await WBNRY.name());
         setWBNRYSupply(wbnrySupply);
         setStakingAddress(Staking.address);
         setTotalStaked(totalStaked);
@@ -80,51 +76,56 @@
     const loadUserData = async () => {
       try {
         console.log('triggered loadUserData');
+    
         // Initiate provider
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         setProvider(provider);
-
-        // todo: maybe delete this
+    
         // Fetch Chain ID
         const { chainId } = await provider.getNetwork();
-
+    
         if (chainId.toString() !== TARGET_NETWORK_ID) {
           alert(`Please connect to the correct network. Current Network ID: ${chainId}, Required Network ID: ${TARGET_NETWORK_ID}`);
           setIsLoading(false);
           return;
         }
-
+    
         // Initiate contracts
         const WBNRY = new ethers.Contract(config[chainId].WBNRY.address, WBNRY_ABI, provider);
         const Staking = new ethers.Contract(config[chainId].Staking.address, STAKING_ABI, provider);
         setStaking(Staking);
         setWBNRY(WBNRY);
-
+    
         // Initiate accounts
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         const account = ethers.utils.getAddress(accounts[0]);
         setAccount(account);
-
+    
         // Fetch account balance
-        setAccountWBNRYBalance(ethers.utils.formatUnits(await WBNRY.balanceOf(account), 8));
-        // // setAccountGains(ethers.utils.formatUnits(await WBNRY.balanceOf(account), 8));
-
+        const accountWBNRYBalance = ethers.utils.formatUnits(await WBNRY.balanceOf(account), 8);
+        setAccountWBNRYBalance(accountWBNRYBalance);
+        // console.log('accountWBNRYBalance:', accountWBNRYBalance);
+    
         const participant = await Staking.getParticipant(account);
+        // console.log('participant:', participant);
+    
         const currentBalance = await Staking.calculateCurrentBalanceCompound(account);
-        const gains = currentBalance - participant.directStakeAmountSatoshi;
-        console.log(participant);
-        console.log(participant.directStakeAmountSatoshi);
-        console.log('currentBalance',ethers.utils.formatUnits(currentBalance, 8));
-        console.log(gains);
-
+        // console.log('currentBalance (raw):', currentBalance.toString());
+    
+        const gains = currentBalance.sub(participant.directStakeAmountSatoshi);
+        // console.log('gains (raw):', gains.toString());
+    
+        // Format the values correctly
+        const formattedCurrentBalance = ethers.utils.formatUnits(currentBalance, 8);
+        const formattedGains = ethers.utils.formatUnits(gains, 8);
+    
+        // console.log('formattedCurrentBalance:', formattedCurrentBalance);
+        // console.log('formattedGains:', formattedGains);
+    
         setAccountStake(ethers.utils.formatUnits(participant.directStakeAmountSatoshi, 8));
-        setAccountStakeBalance(ethers.utils.formatUnits(currentBalance, 8));
-        setAccountGains(ethers.utils.formatUnits(gains, 8));
-
-        const currentBalance2 = await Staking.calculateCurrentBalanceCompound(account);
-        console.log('currentBalance2',ethers.utils.formatUnits(currentBalance2, 8));
-
-
+        setAccountStakeBalance(formattedCurrentBalance);
+        setAccountGains(formattedGains);
+    
         setIsLoading(false);
       } catch (error) {
         console.error("Error loading user data:", error);
@@ -193,8 +194,6 @@
         await loadDefaultData();
         await loadUserData();
 
-        // Clear the form
-        setWithdrawAmount('');
       } catch (error) {
         console.error("Withdrawal failed:", error);
         alert("Withdrawal failed! Check the console for more details.");
@@ -226,7 +225,17 @@
 
     return (
       <Container>
-        <Navigation />
+        <Navbar className='my-3'>
+            <img
+                alt="logo"
+                src={logo}
+                width="40"
+                height="40"
+                className="d-inline-block align-top mx-3"
+            />
+            <Navbar.Brand href="#">BinaryBit</Navbar.Brand>
+        </Navbar>
+
         <h1 className='my-4 text-center'>Introducing WBNRY Staking!</h1>
 
         <section>
@@ -243,7 +252,9 @@
         <hr /> {/* Line break to separate contract information and user information */}
 
         {isLoading ? (
-          <Loading />
+          <div className='text-center my-5'>
+            <p className='my-2'>Please connect metamask...</p>
+        </div>
         ) : (
           <>
             <h2>User Information</h2>
