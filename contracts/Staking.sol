@@ -122,50 +122,45 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     function withdraw(uint256 _tokenAmountSatoshi) public amountGreaterThanZero(_tokenAmountSatoshi) whenNotPaused nonReentrant {
         Participant storage participant = customerMapping[msg.sender];
-        participant.rewardAmountSatoshi += calculateCurrentBalanceCompound(msg.sender) - participant.directStakeAmountSatoshi - participant.rewardAmountSatoshi;
+        uint256 currentBalance = calculateCurrentBalanceCompound(msg.sender);
+        uint256 rewardAmount = currentBalance - participant.directStakeAmountSatoshi - participant.rewardAmountSatoshi;
+        participant.rewardAmountSatoshi += rewardAmount;
 
         uint256 totalBalance = participant.directStakeAmountSatoshi + participant.rewardAmountSatoshi;
         require(totalBalance >= _tokenAmountSatoshi, "insufficient total token balance");
 
-        // If amount is more than or equal to reward part. Update both totalTokensStaked and totalTreasuryTokens
-        if (_tokenAmountSatoshi >= participant.rewardAmountSatoshi) {
-            require(totalTreasuryTokens >= participant.rewardAmountSatoshi, "insufficient treasury token balance");
+        uint256 amountToWithdrawFromTreasury;
+        uint256 directStakeReduction;
 
-            // Update totalTokensStaked and totalTreasuryTokens
-            totalTokensStaked -= _tokenAmountSatoshi - participant.rewardAmountSatoshi;
-            totalTreasuryTokens -= participant.rewardAmountSatoshi;
+        if (_tokenAmountSatoshi > participant.rewardAmountSatoshi) {
+            amountToWithdrawFromTreasury = participant.rewardAmountSatoshi;
+            directStakeReduction = _tokenAmountSatoshi - amountToWithdrawFromTreasury;
+            require(totalTreasuryTokens >= amountToWithdrawFromTreasury, "insufficient treasury token balance");
 
-            // Update struct
-            participant.latestActionTime = block.timestamp;
-            participant.directStakeAmountSatoshi -= _tokenAmountSatoshi - participant.rewardAmountSatoshi;
+            totalTokensStaked -= directStakeReduction;
+            participant.directStakeAmountSatoshi -= directStakeReduction;
             participant.rewardAmountSatoshi = 0;
-
-            // Transfer total amount
-            token.transfer(msg.sender, _tokenAmountSatoshi);
-
-            emit Withdraw(msg.sender, _tokenAmountSatoshi);
         } else {
-            require(totalTreasuryTokens >= _tokenAmountSatoshi, "insufficient treasury token balance");
+            amountToWithdrawFromTreasury = _tokenAmountSatoshi;
+            require(totalTreasuryTokens >= amountToWithdrawFromTreasury, "insufficient treasury token balance");
 
-            // Update totalTokensStaked and totalTreasuryTokens
-            totalTreasuryTokens -= _tokenAmountSatoshi;
-
-            // Update struct
-            participant.latestActionTime = block.timestamp;
             participant.rewardAmountSatoshi -= _tokenAmountSatoshi;
-
-            // Transfer total amount
-            token.transfer(msg.sender, _tokenAmountSatoshi);
-
-            emit Withdraw(msg.sender, _tokenAmountSatoshi);
         }
+
+        totalTreasuryTokens -= amountToWithdrawFromTreasury;
+        participant.latestActionTime = block.timestamp;
+
+        bool success = token.transfer(msg.sender, _tokenAmountSatoshi);
+        require(success, "Token transfer failed");
+
+        emit Withdraw(msg.sender, _tokenAmountSatoshi);
     }
 
     // This function is just for testing purposes, needs to be disabled in production
-    // function updateTimestamp(address user, uint256 newTimestamp) public onlyOwner {
-    //     require(customerMapping[user].user != address(0), "User does not exist");
-    //     customerMapping[user].latestActionTime = newTimestamp;
-    // }
+    function updateTimestamp(address user, uint256 newTimestamp) public onlyOwner {
+        require(customerMapping[user].user != address(0), "User does not exist");
+        customerMapping[user].latestActionTime = newTimestamp;
+    }
 
     function getParticipant(address _customer) public view returns (Participant memory) {
         Participant memory participant = customerMapping[_customer];

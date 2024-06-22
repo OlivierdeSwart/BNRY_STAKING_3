@@ -7,12 +7,12 @@
             "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
         }
     },
-    "11155111": {
+    "97": {
         "WBNRY": {
-            "address": "0x970C80d4114a25FC57aF285EDC1FAc6C42F7d7bC"
+            "address": "0xe40D0B0cbD3E4eb7DfFf1b398589C3151513bB64"
         },
         "Staking": {
-            "address": "0x23d9D8744de55d98d949aA38128B2342F6a51b9C"
+            "address": "0x9066c39EF950eE2e2b1603C788e59aa4E089632a"
         }
     }
 }

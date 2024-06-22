@@ -10,7 +10,7 @@ describe('Wrapped BNRY', () => {
 
     beforeEach(async () => {
         // Load and deploy WrappedBNRY contract
-        const WrappedBNRY = await ethers.getContractFactory('WrappedBNRY');
+        const WrappedBNRY = await ethers.getContractFactory('WBNRY');
         wrappedBNRY = await WrappedBNRY.deploy();
         await wrappedBNRY.deployed();
 

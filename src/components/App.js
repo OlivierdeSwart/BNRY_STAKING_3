@@ -37,7 +37,7 @@ function App() {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  const TARGET_NETWORK_ID = '31337'; // Hardhat network ID
+  const TARGET_NETWORK_ID = '97'; // Hardhat network ID
 
   const loadDefaultData = async () => {
     try {
