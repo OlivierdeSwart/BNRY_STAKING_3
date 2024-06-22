@@ -42,7 +42,8 @@ function App() {
   const loadDefaultData = async () => {
     try {
       // Initiate default provider
-      const defaultProvider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545');
+      // const defaultProvider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545');
+      const defaultProvider = new ethers.providers.Web3Provider(window.ethereum);
 
       // Fetch Chain ID
       const { chainId } = await defaultProvider.getNetwork();
