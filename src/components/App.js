@@ -222,8 +222,14 @@ function App() {
     try {
       const amountToWithdraw = ethers.utils.parseUnits(withdrawAmount, 8); // Use user input
 
+      // Estimate gas
+      const gasEstimate = await staking.connect(provider.getSigner()).estimateGas.withdraw(amountToWithdraw);
+      console.log('Estimated Gas: ', gasEstimate.toString());
+
       // Withdraw tokens
-      const withdrawTx = await staking.connect(provider.getSigner()).withdraw(amountToWithdraw);
+      const withdrawTx = await staking.connect(provider.getSigner()).withdraw(amountToWithdraw, {
+        gasLimit: gasEstimate.mul(2) // Set a higher gas limit to ensure the transaction completes
+      });
       await withdrawTx.wait();
 
       alert("Withdrawal successful!");
@@ -249,8 +255,14 @@ function App() {
         return;
       }
   
-      // Withdraw tokens
-      const withdrawTx = await staking.connect(provider.getSigner()).withdraw(currentBalance);
+      // Estimate gas
+      const gasEstimate = await staking.connect(provider.getSigner()).estimateGas.withdraw(currentBalance);
+      console.log('Estimated Gas: ', gasEstimate.toString());
+  
+      // Withdraw tokens with estimated gas limit
+      const withdrawTx = await staking.connect(provider.getSigner()).withdraw(currentBalance, {
+        gasLimit: gasEstimate.mul(2) // Set a higher gas limit to ensure the transaction completes
+      });
       await withdrawTx.wait();
   
       alert("Withdrawal successful!");
